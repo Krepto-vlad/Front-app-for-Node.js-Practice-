@@ -1,0 +1,12 @@
+header {
+  background-color: #333942;
+  padding: 10px;
+
+  .logo {
+    color: white;
+  }
+  .create-link {
+    margin-left: 300px;
+    color: white;
+  }
+}

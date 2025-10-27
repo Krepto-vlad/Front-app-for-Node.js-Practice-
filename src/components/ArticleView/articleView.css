@@ -1,0 +1,9 @@
+.view-wrapper {
+    display: flex;
+    flex-direction: column;
+
+    h2 {
+        text-align: center;
+        margin-bottom: 50px;
+    }
+}
