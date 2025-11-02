@@ -5,7 +5,7 @@ export default function Header() {
   return (
     <header>
       <Link className="logo" to="/">
-        Logo
+        <img src="./Logo3.png" alt="logo" />
       </Link>
       <Link className="create-link" to="/new">
         Create Article

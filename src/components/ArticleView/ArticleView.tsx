@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { marked } from "marked";
 import type { Article } from "../../types";
 import "./articleView.css";
@@ -9,6 +10,7 @@ interface Props {
 
 export default function ArticleView({ id }: Props) {
   const [article, setArticle] = useState<Article | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetch(`http://localhost:3333/articles/${id}`)
@@ -21,7 +23,14 @@ export default function ArticleView({ id }: Props) {
 
   return (
     <div className="view-wrapper">
-      <h2>{article.title}</h2>
+      <div className="edit-container">
+        <div className="title-center">
+          <h2>{article.title}</h2>
+        </div>
+        <button onClick={() => navigate(`/edit/${id}`)} title="Edit">
+          <img src="/editing.png" alt="edit button" />
+        </button>
+      </div>
       <div dangerouslySetInnerHTML={{ __html: marked(article.content) }} />
     </div>
   );
