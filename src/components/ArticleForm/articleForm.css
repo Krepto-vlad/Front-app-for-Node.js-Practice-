@@ -30,6 +30,21 @@
     }
   }
 
+  .attachments-upload {
+    margin-top: 20px;
+    font-weight: 700;
+  }
+
+  .attachments-list {
+    .delete-button {
+      margin-left: 8px;
+      background: transparent;
+      border: none;
+      color: red;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  }
   .form-button-wrapper {
     display: flex;
     margin-top: 20px;
