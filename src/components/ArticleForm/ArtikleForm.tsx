@@ -14,7 +14,7 @@ export default function ArticleForm({ articleId }: Props) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [attachments, setAttachments] = useState<Article["attachments"]>([]);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editor = useEditor({});
@@ -39,8 +39,15 @@ export default function ArticleForm({ articleId }: Props) {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setSelectedFile(e.target.files[0]);
+      setSelectedFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
+  };
+
+  const handleRemoveSelectedFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleDeleteAttachment = async (filename: string) => {
@@ -69,6 +76,32 @@ export default function ArticleForm({ articleId }: Props) {
       setError("Title and content are required.");
       return;
     }
+
+    if (articleId && selectedFiles.length > 0) {
+      const formData = new FormData();
+      selectedFiles.forEach((file) => formData.append("files", file));
+      const fileRes = await fetch(
+        `http://localhost:3333/articles/${articleId}/attachments`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!fileRes.ok) {
+        const data = await fileRes.json();
+        setError(data.error || "Failed to upload files.");
+        return;
+      }
+
+      const articleRes = await fetch(
+        `http://localhost:3333/articles/${articleId}`
+      );
+      const article: Article = await articleRes.json();
+      setAttachments(article.attachments || []);
+      setSelectedFiles([]);
+    }
+
     const method = articleId ? "PUT" : "POST";
     const url = articleId
       ? `http://localhost:3333/articles/${articleId}`
@@ -79,41 +112,40 @@ export default function ArticleForm({ articleId }: Props) {
       body: JSON.stringify({ title, content }),
     });
 
-    let newArticleId = articleId;
-    if (!articleId && res.ok) {
+    if (!res.ok) {
       const data = await res.json();
-      newArticleId = data.id;
+      setError(data.error || "Failed to save article.");
+      return;
     }
 
-    if (res.ok && selectedFile && newArticleId) {
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-      const fileRes = await fetch(
-        `http://localhost:3333/articles/${newArticleId}/attachments`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-      if (fileRes.ok) {
-        const articleRes = await fetch(
-          `http://localhost:3333/articles/${newArticleId}`
+    let newArticleId = articleId;
+    if (!articleId) {
+      const data = await res.json();
+      newArticleId = data.id;
+
+      if (selectedFiles.length > 0) {
+        const formData = new FormData();
+        selectedFiles.forEach((file) => formData.append("files", file));
+        const fileRes = await fetch(
+          `http://localhost:3333/articles/${newArticleId}/attachments`,
+          {
+            method: "POST",
+            body: formData,
+          }
         );
-        const article: Article = await articleRes.json();
-        setAttachments(article.attachments || []);
-      } else {
-        const data = await fileRes.json();
-        setError(data.error || "Failed to upload file.");
-        return;
+
+        if (!fileRes.ok) {
+          const data = await fileRes.json();
+          setError(
+            data.error || "Article created, but failed to upload files."
+          );
+          return;
+        }
+        setSelectedFiles([]);
       }
     }
 
-    if (res.ok) {
-      navigate("/");
-    } else {
-      const data = await res.json();
-      setError(data.error || "Failed to save article.");
-    }
+    navigate("/");
   };
 
   const handleDelete = async () => {
@@ -155,15 +187,52 @@ export default function ArticleForm({ articleId }: Props) {
         />
 
         <div className="attachments-upload">
-          <label htmlFor="file-upload">Attach file (JPG, PNG, PDF): </label>
+          <label htmlFor="file-upload">Attach files (JPG, PNG, PDF): </label>
           <input
             id="file-upload"
             type="file"
             accept=".jpg,.jpeg,.png,.pdf"
+            multiple
             ref={fileInputRef}
             onChange={handleFileChange}
           />
-          {selectedFile && <div>Selected file: {selectedFile.name}</div>}
+          {selectedFiles.length > 0 && (
+            <div style={{ marginTop: "10px" }}>
+              <strong>Selected files ({selectedFiles.length}):</strong>
+              <ul style={{ listStyle: "none", padding: 0, marginTop: "5px" }}>
+                {selectedFiles.map((file, index) => (
+                  <li
+                    key={index}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    <span>
+                      {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSelectedFile(index)}
+                      style={{
+                        background: "#ef4765",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        padding: "4px 8px",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                      }}
+                    >
+                      ✖
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         {attachments && attachments.length > 0 && (
