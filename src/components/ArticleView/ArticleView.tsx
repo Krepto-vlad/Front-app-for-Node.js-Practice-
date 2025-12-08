@@ -1,33 +1,157 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { marked } from "marked";
-import type { Article } from "../../types";
+import type { Article, Comment } from "../../types";
 import "./articleView.css";
 
 interface Props {
   id: string;
 }
 
+const COMMENTS_PAGE_SIZE = 10;
+
 export default function ArticleView({ id }: Props) {
   const [article, setArticle] = useState<Article | null>(null);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentsOffset, setCommentsOffset] = useState(0);
+  const [hasMoreComments, setHasMoreComments] = useState(true);
+  const [newComment, setNewComment] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
+  const [error, setError] = useState("");
+
+  const loadMoreComments = useCallback(
+    (offset: number = 0) => {
+      console.log(`Loading comments: offset=${offset}, articleId=${id}`);
+      fetch(
+        `http://localhost:3333/articles/${id}/comments?offset=${offset}&limit=${COMMENTS_PAGE_SIZE}`
+      )
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to fetch comments");
+          return res.json();
+        })
+        .then((data) => {
+          console.log("Comments received:", data);
+          const commentsArray = Array.isArray(data)
+            ? data
+            : data.comments && Array.isArray(data.comments)
+            ? data.comments
+            : [];
+
+          console.log("Processed comments array:", commentsArray);
+
+          if (commentsArray.length < COMMENTS_PAGE_SIZE)
+            setHasMoreComments(false);
+          setComments((prev) => [...prev, ...commentsArray]);
+          setCommentsOffset(offset + commentsArray.length);
+        })
+        .catch((err) => {
+          console.error("Error loading comments:", err);
+          setError("Failed to load comments.");
+          setHasMoreComments(false);
+        });
+    },
+    [id]
+  );
 
   useEffect(() => {
+    if (!id) return;
+
     fetch(`http://localhost:3333/articles/${id}`)
-      .then((res) => res.json())
-      .then(setArticle)
-      .catch(() => setArticle(null));
-  }, [id]);
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch article");
+        return res.json();
+      })
+      .then((data) => {
+        const article = {
+          ...data,
+          attachments: data.attachments || data.Attachments || [],
+        };
+        setArticle(article);
+      })
+      .catch((err) => {
+        console.error("Error loading article:", err);
+        setArticle(null);
+      });
+
+    setComments([]);
+    setCommentsOffset(0);
+    setHasMoreComments(true);
+    setError("");
+    loadMoreComments(0);
+  }, [id, loadMoreComments]);
+
+  const handleAddComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!newComment.trim()) return;
+    const res = await fetch(`http://localhost:3333/articles/${id}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: newComment }),
+    });
+    if (res.ok) {
+      const comment: Comment = await res.json();
+      setComments((prev) => [comment, ...prev]);
+      setNewComment("");
+    } else {
+      const data = await res.json();
+      setError(data.error || "Failed to add comment.");
+    }
+  };
+
+  const handleEdit = (comment: Comment) => {
+    setEditingCommentId(comment.id);
+    setEditingText(comment.text);
+  };
+
+  const handleSaveEdit = async (commentId: string) => {
+    setError("");
+    if (!editingText.trim()) return;
+    const res = await fetch(
+      `http://localhost:3333/articles/${id}/comments/${commentId}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: editingText }),
+      }
+    );
+    if (res.ok) {
+      setComments((prev) =>
+        prev.map((c) => (c.id === commentId ? { ...c, text: editingText } : c))
+      );
+      setEditingCommentId(null);
+      setEditingText("");
+    } else {
+      const data = await res.json();
+      setError(data.error || "Failed to update comment.");
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!window.confirm("Delete this comment?")) return;
+    const res = await fetch(
+      `http://localhost:3333/articles/${id}/comments/${commentId}`,
+      { method: "DELETE" }
+    );
+    if (res.ok) {
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+    } else {
+      const data = await res.json();
+      setError(data.error || "Failed to delete comment.");
+    }
+  };
 
   if (!article) return <div>Loading...</div>;
 
   return (
     <div className="view-wrapper">
       {article.attachments && article.attachments.length > 0 && (
-        <div className="attachments-list">
+        <div className="attachments-list-container">
           <h3>Attachments:</h3>
-          <ul>
+          <ul className="attachments-list">
             {article.attachments.map((file) => (
               <li key={file.filename}>
                 {file.mimetype.startsWith("image/") ? (
@@ -76,7 +200,102 @@ export default function ArticleView({ id }: Props) {
           <img src="/editing.png" alt="edit button" />
         </button>
       </div>
+
       <div dangerouslySetInnerHTML={{ __html: marked(article.content) }} />
+
+      <div className="comments-section">
+        <h3>Comments</h3>
+        {error && <div className="comment-error">{error}</div>}
+        <form onSubmit={handleAddComment} className="comments-form">
+          <textarea
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Add a comment..."
+            className="comment-textarea"
+            disabled={!!editingCommentId}
+          />
+          <button
+            type="submit"
+            disabled={!!editingCommentId || !newComment.trim()}
+            className="comment-button"
+            style={{ marginTop: "12px" }}
+          >
+            Add Comment
+          </button>
+        </form>
+        {comments.length === 0 && !hasMoreComments ? (
+          <p className="no-comments">
+            No comments yet. Be the first to comment!
+          </p>
+        ) : (
+          <ul className="comments-list">
+            {comments.map((comment) => (
+              <li key={comment.id} className="comment-item">
+                {editingCommentId === comment.id ? (
+                  <div>
+                    <textarea
+                      value={editingText}
+                      onChange={(e) => setEditingText(e.target.value)}
+                      className="comment-textarea"
+                    />
+                    <div
+                      className="comment-actions"
+                      style={{ marginTop: "12px" }}
+                    >
+                      <button
+                        onClick={() => handleSaveEdit(comment.id)}
+                        disabled={!editingText.trim()}
+                        className="comment-button"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingCommentId(null)}
+                        className="comment-button secondary-button"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="comment-content">{comment.text}</div>
+                    <div className="comment-meta">
+                      <span className="comment-date">
+                        {new Date(comment.createdAt).toLocaleString()}
+                      </span>
+                      <div className="comment-actions">
+                        <button
+                          onClick={() => handleEdit(comment)}
+                          disabled={!!editingCommentId}
+                          className="comment-button"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteComment(comment.id)}
+                          disabled={!!editingCommentId}
+                          className="comment-button delete-button"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {hasMoreComments && (
+          <button
+            onClick={() => loadMoreComments(commentsOffset)}
+            className="comment-button"
+          >
+            Load more
+          </button>
+        )}
+      </div>
     </div>
   );
 }

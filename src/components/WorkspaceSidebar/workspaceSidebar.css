@@ -1,0 +1,44 @@
+.workspace-sidebar {
+  background: #f7f7f7;
+  height: 100vh;
+}
+.workspace-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.workspace-title {
+  font-weight: bold;
+  padding: 12px 16px;
+  cursor: pointer;
+  background: #f7f7f7;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.workspace-title:hover {
+  background: #ececec;
+}
+.workspace-title.selected {
+  background: #e0e0e0;
+}
+.workspace-icon {
+  font-size: 14px;
+  color: #666;
+  user-select: none;
+}
+.article-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 16px;
+}
+.article-title {
+  padding: 8px 16px;
+  cursor: pointer;
+  background: #f7f7f7;
+  border-bottom: 1px solid #eee;
+}
+.article-title.selected {
+  background: #d0d0d0;
+}

@@ -1,12 +1,10 @@
 .home-page-wrapper {
     display: flex;
     height: 100vh;
-    padding-left: 20px;
 
     .home-sidebar {
-        width: 300;
+        width: 300px;
         border-right: 1px solid #ccc;
-
     }
 
     .sidebar-title {

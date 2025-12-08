@@ -1,13 +1,25 @@
 import Layout from "../../components/Layout/Layout";
-import ArticleList from "../../components/ArticleList/ArticleList";
+import WorkspaceSidebar from "../../components/WorkspaceSidebar/workspaceSidebar";
 import ArticleView from "../../components/ArticleView/ArticleView";
-import "./homePage.css";
 import { useEffect, useState } from "react";
-import type { Article } from "../../types";
+import type { Workspace, Article } from "../../types";
+import "./homePage.css";
 
 export default function HomePage() {
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
+    null
+  );
+  const [selectedArticleId, setSelectedArticleId] = useState<string | null>(
+    null
+  );
+
+  useEffect(() => {
+    fetch("http://localhost:3333/workspaces")
+      .then((res) => res.json())
+      .then(setWorkspaces);
+  }, []);
 
   useEffect(() => {
     fetch("http://localhost:3333/articles")
@@ -16,20 +28,27 @@ export default function HomePage() {
       .catch(() => setArticles([]));
   }, []);
 
+  const handleSelectWorkspace = (id: string) => {
+    setSelectedWorkspaceId(id || null);
+    setSelectedArticleId(null);
+  };
+
   return (
     <Layout>
       <div className="home-page-wrapper">
         <div className="home-sidebar">
-          <p className="sidebar-title">PAGE TREE</p>
-          <ArticleList
+          <WorkspaceSidebar
+            workspaces={workspaces}
             articles={articles}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
+            selectedWorkspaceId={selectedWorkspaceId}
+            onSelectWorkspace={handleSelectWorkspace}
+            selectedArticleId={selectedArticleId}
+            onSelectArticle={setSelectedArticleId}
           />
         </div>
         <div className="article-content">
-          {selectedId ? (
-            <ArticleView id={selectedId} />
+          {selectedArticleId ? (
+            <ArticleView id={selectedArticleId} />
           ) : (
             <div>Select an article</div>
           )}

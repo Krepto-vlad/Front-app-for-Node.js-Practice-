@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Editable, useEditor } from "@wysimark/react";
 import "./articleForm.css";
-import type { Article } from "../../types";
+import type { Workspace, Article } from "../../types";
 
 interface Props {
   articleId?: string;
@@ -18,16 +18,24 @@ export default function ArticleForm({ articleId }: Props) {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editor = useEditor({});
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [workspaceId, setWorkspaceId] = useState<string>("");
+  const [newWorkspaceName, setNewWorkspaceName] = useState<string>("");
 
   useEffect(() => {
     if (articleId) {
       setLoading(true);
       fetch(`http://localhost:3333/articles/${articleId}`)
         .then((res) => res.json())
-        .then((article: Article) => {
-          setTitle(article.title);
-          setContent(article.content);
-          setAttachments(article.attachments || []);
+        .then((data: Record<string, unknown>) => {
+          setTitle(data.title as string);
+          setContent(data.content as string);
+          setWorkspaceId(data.workspaceId as string);
+          setAttachments(
+            (data.attachments ||
+              data.Attachments ||
+              []) as Article["attachments"]
+          );
           setLoading(false);
         })
         .catch(() => {
@@ -36,6 +44,30 @@ export default function ArticleForm({ articleId }: Props) {
         });
     }
   }, [articleId]);
+
+  useEffect(() => {
+    fetch("http://localhost:3333/workspaces")
+      .then((res) => res.json())
+      .then(setWorkspaces);
+  }, []);
+
+  const handleCreateWorkspace = async () => {
+    if (!newWorkspaceName.trim()) return;
+    const res = await fetch("http://localhost:3333/workspaces", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newWorkspaceName }),
+    });
+    if (res.ok) {
+      const ws = await res.json();
+      setWorkspaces((prev) => [...prev, ws]);
+      setWorkspaceId(ws.id);
+      setNewWorkspaceName("");
+    } else {
+      const data = await res.json();
+      setError(data.error || "Failed to create workspace.");
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -77,6 +109,12 @@ export default function ArticleForm({ articleId }: Props) {
       return;
     }
 
+    if (!workspaceId) {
+      setError("Workspace is required.");
+
+      return;
+    }
+
     if (articleId && selectedFiles.length > 0) {
       const formData = new FormData();
       selectedFiles.forEach((file) => formData.append("files", file));
@@ -97,8 +135,10 @@ export default function ArticleForm({ articleId }: Props) {
       const articleRes = await fetch(
         `http://localhost:3333/articles/${articleId}`
       );
-      const article: Article = await articleRes.json();
-      setAttachments(article.attachments || []);
+      const data = (await articleRes.json()) as Record<string, unknown>;
+      setAttachments(
+        (data.attachments || data.Attachments || []) as Article["attachments"]
+      );
       setSelectedFiles([]);
     }
 
@@ -109,7 +149,7 @@ export default function ArticleForm({ articleId }: Props) {
     const res = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, content }),
+      body: JSON.stringify({ title, content, workspaceId }),
     });
 
     if (!res.ok) {
@@ -170,6 +210,44 @@ export default function ArticleForm({ articleId }: Props) {
       <h2>{articleId ? "Edit Article" : "Create Article"}</h2>
       {error && <div className="create-error">{error}</div>}
       <form onSubmit={handleSubmit}>
+        <div className="input-workspace-wrapper">
+          <label htmlFor="workspace-select">Workspace:</label>
+          <select
+            id="workspace-select"
+            value={workspaceId}
+            onChange={(e) => setWorkspaceId(e.target.value)}
+          >
+            <option value="">Select workspace...</option>
+            {workspaces.map((ws) => (
+              <option key={ws.id} value={ws.id}>
+                {ws.name}
+              </option>
+            ))}
+          </select>
+          <div className="workspace-create-section">
+            <span className="workspace-create-label">
+              Or create a new workspace:
+            </span>
+            <div className="workspace-create-row">
+              <input
+                type="text"
+                placeholder="Enter workspace name"
+                value={newWorkspaceName}
+                onChange={(e) => setNewWorkspaceName(e.target.value)}
+                className="workspace-input"
+              />
+              <button
+                type="button"
+                onClick={handleCreateWorkspace}
+                disabled={!newWorkspaceName.trim()}
+                className="workspace-create-button"
+              >
+                <span>+</span> Create
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="input-title-wrapper">
           <label htmlFor="input-title">Add Title:</label>
           <input
