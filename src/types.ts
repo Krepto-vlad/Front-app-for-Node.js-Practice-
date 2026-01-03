@@ -11,6 +11,16 @@ export interface Comment {
   updatedAt: string;
 }
 
+export interface ArticleVersion {
+  id: string;
+  articleId: string;
+  version: number;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Article {
   id: string;
   title: string;
@@ -22,4 +32,17 @@ export interface Article {
     mimetype: string;
     size: number;
   }[];
+  currentVersion?: number;
+  latestVersionData?: {
+    version: number;
+    title: string;
+    content: string;
+    createdAt: string;
+  };
+  versionData?: {
+    version: number;
+    title: string;
+    content: string;
+    createdAt: string;
+  };
 }

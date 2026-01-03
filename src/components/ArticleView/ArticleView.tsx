@@ -6,14 +6,16 @@ import "./articleView.css";
 
 interface Props {
   id: string;
+  versionNumber?: number;
 }
 
 const COMMENTS_PAGE_SIZE = 10;
 
-export default function ArticleView({ id }: Props) {
+export default function ArticleView({ id, versionNumber }: Props) {
   const [article, setArticle] = useState<Article | null>(null);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [isOldVersion, setIsOldVersion] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentsOffset, setCommentsOffset] = useState(0);
   const [hasMoreComments, setHasMoreComments] = useState(true);
@@ -59,7 +61,11 @@ export default function ArticleView({ id }: Props) {
   useEffect(() => {
     if (!id) return;
 
-    fetch(`http://localhost:3333/articles/${id}`)
+    const url = versionNumber
+      ? `http://localhost:3333/articles/${id}/versions/${versionNumber}`
+      : `http://localhost:3333/articles/${id}`;
+
+    fetch(url)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch article");
         return res.json();
@@ -70,6 +76,12 @@ export default function ArticleView({ id }: Props) {
           attachments: data.attachments || data.Attachments || [],
         };
         setArticle(article);
+        
+        if (versionNumber && data.currentVersion && versionNumber < data.currentVersion) {
+          setIsOldVersion(true);
+        } else {
+          setIsOldVersion(false);
+        }
       })
       .catch((err) => {
         console.error("Error loading article:", err);
@@ -81,7 +93,7 @@ export default function ArticleView({ id }: Props) {
     setHasMoreComments(true);
     setError("");
     loadMoreComments(0);
-  }, [id, loadMoreComments]);
+  }, [id, versionNumber, loadMoreComments]);
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,8 +158,24 @@ export default function ArticleView({ id }: Props) {
 
   if (!article) return <div>Loading...</div>;
 
+  const displayTitle = article.versionData?.title || article.title;
+  const displayContent = article.versionData?.content || article.content;
+  const currentVersionNumber = article.versionData?.version || article.currentVersion;
+
   return (
     <div className="view-wrapper">
+      {isOldVersion && (
+        <div className="old-version-banner">
+          ⚠️ You are viewing an old version (v{currentVersionNumber}). This version is read-only.{" "}
+          <button 
+            onClick={() => navigate(`/article/${id}/versions`)} 
+            className="version-link-button"
+          >
+            View all versions
+          </button>
+        </div>
+      )}
+
       {article.attachments && article.attachments.length > 0 && (
         <div className="attachments-list-container">
           <h3>Attachments:</h3>
@@ -194,14 +222,24 @@ export default function ArticleView({ id }: Props) {
 
       <div className="edit-container">
         <div className="title-center">
-          <h2>{article.title}</h2>
+          <h2>{displayTitle}</h2>
+          {currentVersionNumber && (
+            <span className="version-badge">Version {currentVersionNumber}</span>
+          )}
         </div>
-        <button onClick={() => navigate(`/edit/${id}`)} title="Edit">
-          <img src="/editing.png" alt="edit button" />
-        </button>
+        <div className="article-actions">
+          {!isOldVersion && (
+            <button onClick={() => navigate(`/edit/${id}`)} title="Edit">
+              <img src="/editing.png" alt="edit button" />
+            </button>
+          )}
+          <button onClick={() => navigate(`/article/${id}/versions`)} title="View Versions">
+            <img src="/history.png" alt="version history" />
+          </button>
+        </div>
       </div>
 
-      <div dangerouslySetInnerHTML={{ __html: marked(article.content) }} />
+      <div dangerouslySetInnerHTML={{ __html: marked(displayContent) }} />
 
       <div className="comments-section">
         <h3>Comments</h3>

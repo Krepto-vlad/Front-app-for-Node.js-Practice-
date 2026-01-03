@@ -1,0 +1,131 @@
+.versions-page-wrapper {
+  display: flex;
+  gap: 24px;
+  height: calc(100vh - 80px);
+  padding: 20px;
+}
+
+.versions-sidebar {
+  width: 350px;
+  background: #f9f9f9;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+}
+
+.versions-header {
+  margin-bottom: 20px;
+}
+
+.versions-header h2 {
+  margin: 0 0 16px 0;
+  font-size: 24px;
+  color: #333;
+}
+
+.back-button {
+  background: linear-gradient(to bottom right, #ef4765, #ff9a5a);
+  border: 0;
+  border-radius: 12px;
+  color: #ffffff;
+  cursor: pointer;
+  font-family: -apple-system, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 2.5;
+  outline: transparent;
+  padding: 0 1rem;
+  text-align: center;
+  transition: box-shadow 0.2s ease-in-out;
+  user-select: none;
+  touch-action: manipulation;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.back-button:hover {
+    box-shadow: 0 0 0.25rem rgba(0, 0, 0, 0.5),
+      -0.125rem -0.125rem 1rem rgba(239, 71, 101, 0.5),
+      0.125rem 0.125rem 1rem rgba(255, 154, 90, 0.5);
+}   
+
+.versions-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.version-item {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.version-item:hover {
+  background: #f0f0f0;
+  transform: translateX(4px);
+}
+
+.version-item.selected {
+  border-color: #ff9a5a;
+  background: #e7f3ff;
+}
+
+.version-number {
+  font-weight: 600;
+  color: #ff9a5a;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.version-title {
+  color: #333;
+  margin-bottom: 4px;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.version-date {
+  font-size: 12px;
+  color: #888;
+}
+
+.version-content {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+}
+
+.select-version-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: #888;
+}
+
+.select-version-message h3 {
+  margin-bottom: 12px;
+  color: #555;
+}
+
+.error {
+  color: #ef4765;
+  padding: 20px;
+  text-align: center;
+  background: #ffe5e5;
+  border-radius: 8px;
+  margin: 20px;
+}
