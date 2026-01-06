@@ -3,12 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { Editable, useEditor } from "@wysimark/react";
 import "./articleForm.css";
 import type { Workspace, Article } from "../../types";
+import { useAuth } from "../../context/AuthContext";
+import { apiRequest, apiRequestFormData } from "../../utils/api";
 
 interface Props {
   articleId?: string;
 }
 
 export default function ArticleForm({ articleId }: Props) {
+  const { user, isAdmin } = useAuth();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [error, setError] = useState("");
@@ -27,15 +30,18 @@ export default function ArticleForm({ articleId }: Props) {
       setLoading(true);
       fetch(`http://localhost:3333/articles/${articleId}`)
         .then((res) => res.json())
-        .then((data: Record<string, unknown>) => {
+        .then((data: Article) => {
+          if (data.userId && user?.id !== data.userId && !isAdmin) {
+            setError("You don't have permission to edit this article.");
+            setLoading(false);
+            setTimeout(() => navigate("/"), 2000);
+            return;
+          }
+
           setTitle(data.title as string);
           setContent(data.content as string);
           setWorkspaceId(data.workspaceId as string);
-          setAttachments(
-            (data.attachments ||
-              data.Attachments ||
-              []) as Article["attachments"]
-          );
+          setAttachments((data.attachments || []) as Article["attachments"]);
           setLoading(false);
         })
         .catch(() => {
@@ -43,7 +49,7 @@ export default function ArticleForm({ articleId }: Props) {
           setLoading(false);
         });
     }
-  }, [articleId]);
+  }, [articleId, user, isAdmin, navigate]);
 
   useEffect(() => {
     fetch("http://localhost:3333/workspaces")
@@ -53,9 +59,8 @@ export default function ArticleForm({ articleId }: Props) {
 
   const handleCreateWorkspace = async () => {
     if (!newWorkspaceName.trim()) return;
-    const res = await fetch("http://localhost:3333/workspaces", {
+    const res = await apiRequest("http://localhost:3333/workspaces", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: newWorkspaceName }),
     });
     if (res.ok) {
@@ -85,7 +90,7 @@ export default function ArticleForm({ articleId }: Props) {
   const handleDeleteAttachment = async (filename: string) => {
     if (!articleId) return;
     if (!window.confirm("Delete this file?")) return;
-    const res = await fetch(
+    const res = await apiRequest(
       `http://localhost:3333/articles/${articleId}/attachments/${encodeURIComponent(
         filename
       )}`,
@@ -111,14 +116,13 @@ export default function ArticleForm({ articleId }: Props) {
 
     if (!workspaceId) {
       setError("Workspace is required.");
-
       return;
     }
 
     if (articleId && selectedFiles.length > 0) {
       const formData = new FormData();
       selectedFiles.forEach((file) => formData.append("files", file));
-      const fileRes = await fetch(
+      const fileRes = await apiRequestFormData(
         `http://localhost:3333/articles/${articleId}/attachments`,
         {
           method: "POST",
@@ -135,10 +139,8 @@ export default function ArticleForm({ articleId }: Props) {
       const articleRes = await fetch(
         `http://localhost:3333/articles/${articleId}`
       );
-      const data = (await articleRes.json()) as Record<string, unknown>;
-      setAttachments(
-        (data.attachments || data.Attachments || []) as Article["attachments"]
-      );
+      const data = (await articleRes.json()) as Article;
+      setAttachments((data.attachments || []) as Article["attachments"]);
       setSelectedFiles([]);
     }
 
@@ -146,9 +148,8 @@ export default function ArticleForm({ articleId }: Props) {
     const url = articleId
       ? `http://localhost:3333/articles/${articleId}`
       : "http://localhost:3333/articles";
-    const res = await fetch(url, {
+    const res = await apiRequest(url, {
       method,
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, content, workspaceId }),
     });
 
@@ -166,7 +167,7 @@ export default function ArticleForm({ articleId }: Props) {
       if (selectedFiles.length > 0) {
         const formData = new FormData();
         selectedFiles.forEach((file) => formData.append("files", file));
-        const fileRes = await fetch(
+        const fileRes = await apiRequestFormData(
           `http://localhost:3333/articles/${newArticleId}/attachments`,
           {
             method: "POST",
@@ -192,9 +193,12 @@ export default function ArticleForm({ articleId }: Props) {
     if (!articleId) return;
     if (!window.confirm("Are you sure you want to delete this article?"))
       return;
-    const res = await fetch(`http://localhost:3333/articles/${articleId}`, {
-      method: "DELETE",
-    });
+    const res = await apiRequest(
+      `http://localhost:3333/articles/${articleId}`,
+      {
+        method: "DELETE",
+      }
+    );
     if (res.ok) {
       navigate("/");
     } else {

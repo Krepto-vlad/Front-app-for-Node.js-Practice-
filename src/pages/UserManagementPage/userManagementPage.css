@@ -1,0 +1,103 @@
+.user-management-page {
+  padding: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.user-management-page h1 {
+  text-align: center;
+  margin-bottom: 32px;
+  color: #333;
+}
+
+.error {
+  background: #ffe5e5;
+  color: #ef4765;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.access-denied {
+  padding: 40px;
+  text-align: center;
+}
+
+.access-denied h2 {
+  color: #ef4765;
+  margin-bottom: 16px;
+}
+
+.no-users {
+  text-align: center;
+  padding: 40px;
+  color: #888;
+  font-size: 18px;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.users-table thead {
+  background: linear-gradient(to bottom right, #ef4765, #ff9a5a);
+  color: white;
+}
+
+.users-table th,
+.users-table td {
+  padding: 16px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.users-table tbody tr:hover {
+  background: #f9f9f9;
+}
+
+.users-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.role-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.role-badge.admin {
+  background: #007bff;
+  color: white;
+}
+
+.role-badge.user {
+  background: #6c757d;
+  color: white;
+}
+
+.role-select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.role-select:hover {
+  border-color: #007bff;
+}
+
+.role-select:focus {
+  outline: none;
+  border-color: #007bff;
+}

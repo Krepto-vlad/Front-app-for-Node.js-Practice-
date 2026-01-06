@@ -26,6 +26,7 @@ export interface Article {
   title: string;
   content: string;
   workspaceId: string;
+  userId?: string;
   attachments?: {
     filename: string;
     originalname: string;
