@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Editable, useEditor } from "@wysimark/react";
 import "./articleForm.css";
 import type { Workspace, Article } from "../../types";
-import { useAuth } from "../../context/AuthContext";
 import { apiRequest, apiRequestFormData } from "../../utils/api";
 
 interface Props {
@@ -11,7 +10,6 @@ interface Props {
 }
 
 export default function ArticleForm({ articleId }: Props) {
-  const { user, isAdmin } = useAuth();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [error, setError] = useState("");
@@ -31,13 +29,6 @@ export default function ArticleForm({ articleId }: Props) {
       fetch(`http://localhost:3333/articles/${articleId}`)
         .then((res) => res.json())
         .then((data: Article) => {
-          if (data.userId && user?.id !== data.userId && !isAdmin) {
-            setError("You don't have permission to edit this article.");
-            setLoading(false);
-            setTimeout(() => navigate("/"), 2000);
-            return;
-          }
-
           setTitle(data.title as string);
           setContent(data.content as string);
           setWorkspaceId(data.workspaceId as string);
@@ -49,7 +40,7 @@ export default function ArticleForm({ articleId }: Props) {
           setLoading(false);
         });
     }
-  }, [articleId, user, isAdmin, navigate]);
+  }, [articleId]);
 
   useEffect(() => {
     fetch("http://localhost:3333/workspaces")

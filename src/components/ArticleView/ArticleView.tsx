@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { marked } from "marked";
 import type { Article, Comment } from "../../types";
+import { useAuth } from "../../context/AuthContext";
 import "./articleView.css";
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 const COMMENTS_PAGE_SIZE = 10;
 
 export default function ArticleView({ id, versionNumber }: Props) {
+  const { user, isAdmin } = useAuth();
   const [article, setArticle] = useState<Article | null>(null);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -161,6 +163,8 @@ export default function ArticleView({ id, versionNumber }: Props) {
   const displayTitle = article.versionData?.title || article.title;
   const displayContent = article.versionData?.content || article.content;
   const currentVersionNumber = article.versionData?.version || article.currentVersion;
+  
+  const canEdit = !isOldVersion && (isAdmin || (user && article.userId === user.id));
 
   return (
     <div className="view-wrapper">
@@ -228,7 +232,7 @@ export default function ArticleView({ id, versionNumber }: Props) {
           )}
         </div>
         <div className="article-actions">
-          {!isOldVersion && (
+          {canEdit && (
             <button onClick={() => navigate(`/edit/${id}`)} title="Edit">
               <img src="/editing.png" alt="edit button" />
             </button>
