@@ -2,6 +2,7 @@ import Layout from "../../components/Layout/Layout";
 import WorkspaceSidebar from "../../components/WorkspaceSidebar/workspaceSidebar";
 import ArticleView from "../../components/ArticleView/ArticleView";
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import type { Workspace, Article } from "../../types";
 import "./homePage.css";
 
@@ -9,11 +10,20 @@ export default function HomePage() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
-    null
+    null,
   );
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(
-    null
+    null,
   );
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const articleId = params.get("articleId");
+    if (articleId) {
+      setSelectedArticleId(articleId);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     fetch("http://localhost:3333/workspaces")

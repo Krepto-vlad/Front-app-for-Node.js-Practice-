@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import HeaderSearch from "../HeaderSearch/HeaderSearch";
 import "./header.css";
 
 export default function Header() {
@@ -16,6 +17,7 @@ export default function Header() {
       <Link className="logo" to="/">
         <img src="./Logo3.png" alt="logo" />
       </Link>
+      {isAuthenticated && <HeaderSearch />}
       <div className="header-actions">
         {isAuthenticated ? (
           <>
