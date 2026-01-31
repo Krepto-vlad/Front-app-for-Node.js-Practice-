@@ -30,7 +30,7 @@ export default function ArticleView({ id, versionNumber }: Props) {
     (offset: number = 0) => {
       console.log(`Loading comments: offset=${offset}, articleId=${id}`);
       fetch(
-        `http://localhost:3333/articles/${id}/comments?offset=${offset}&limit=${COMMENTS_PAGE_SIZE}`
+        `http://localhost:3333/articles/${id}/comments?offset=${offset}&limit=${COMMENTS_PAGE_SIZE}`,
       )
         .then((res) => {
           if (!res.ok) throw new Error("Failed to fetch comments");
@@ -41,8 +41,8 @@ export default function ArticleView({ id, versionNumber }: Props) {
           const commentsArray = Array.isArray(data)
             ? data
             : data.comments && Array.isArray(data.comments)
-            ? data.comments
-            : [];
+              ? data.comments
+              : [];
 
           console.log("Processed comments array:", commentsArray);
 
@@ -57,7 +57,7 @@ export default function ArticleView({ id, versionNumber }: Props) {
           setHasMoreComments(false);
         });
     },
-    [id]
+    [id],
   );
 
   useEffect(() => {
@@ -78,8 +78,12 @@ export default function ArticleView({ id, versionNumber }: Props) {
           attachments: data.attachments || data.Attachments || [],
         };
         setArticle(article);
-        
-        if (versionNumber && data.currentVersion && versionNumber < data.currentVersion) {
+
+        if (
+          versionNumber &&
+          data.currentVersion &&
+          versionNumber < data.currentVersion
+        ) {
           setIsOldVersion(true);
         } else {
           setIsOldVersion(false);
@@ -130,11 +134,11 @@ export default function ArticleView({ id, versionNumber }: Props) {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: editingText }),
-      }
+      },
     );
     if (res.ok) {
       setComments((prev) =>
-        prev.map((c) => (c.id === commentId ? { ...c, text: editingText } : c))
+        prev.map((c) => (c.id === commentId ? { ...c, text: editingText } : c)),
       );
       setEditingCommentId(null);
       setEditingText("");
@@ -148,7 +152,7 @@ export default function ArticleView({ id, versionNumber }: Props) {
     if (!window.confirm("Delete this comment?")) return;
     const res = await fetch(
       `http://localhost:3333/articles/${id}/comments/${commentId}`,
-      { method: "DELETE" }
+      { method: "DELETE" },
     );
     if (res.ok) {
       setComments((prev) => prev.filter((c) => c.id !== commentId));
@@ -158,21 +162,57 @@ export default function ArticleView({ id, versionNumber }: Props) {
     }
   };
 
+  const handleExportPdf = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const headers: Record<string, string> = {};
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(
+        `http://localhost:3333/articles/${id}/export-pdf`,
+        { headers },
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to export PDF");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `article-${id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Export error:", error);
+      setError("Failed to export PDF. Please try again.");
+    }
+  };
+
   if (!article) return <div>Loading...</div>;
 
   const displayTitle = article.versionData?.title || article.title;
   const displayContent = article.versionData?.content || article.content;
-  const currentVersionNumber = article.versionData?.version || article.currentVersion;
-  
-  const canEdit = !isOldVersion && (isAdmin || (user && article.userId === user.id));
+  const currentVersionNumber =
+    article.versionData?.version || article.currentVersion;
+
+  const canEdit =
+    !isOldVersion && (isAdmin || (user && article.userId === user.id));
 
   return (
     <div className="view-wrapper">
       {isOldVersion && (
         <div className="old-version-banner">
-          ⚠️ You are viewing an old version (v{currentVersionNumber}). This version is read-only.{" "}
-          <button 
-            onClick={() => navigate(`/article/${id}/versions`)} 
+          ⚠️ You are viewing an old version (v{currentVersionNumber}). This
+          version is read-only.{" "}
+          <button
+            onClick={() => navigate(`/article/${id}/versions`)}
             className="version-link-button"
           >
             View all versions
@@ -193,7 +233,7 @@ export default function ArticleView({ id, versionNumber }: Props) {
                     className="attachments-img"
                     onClick={() =>
                       setPreviewImg(
-                        `http://localhost:3333/attachments/${file.filename}`
+                        `http://localhost:3333/attachments/${file.filename}`,
                       )
                     }
                   />
@@ -228,7 +268,9 @@ export default function ArticleView({ id, versionNumber }: Props) {
         <div className="title-center">
           <h2>{displayTitle}</h2>
           {currentVersionNumber && (
-            <span className="version-badge">Version {currentVersionNumber}</span>
+            <span className="version-badge">
+              Version {currentVersionNumber}
+            </span>
           )}
         </div>
         <div className="article-actions">
@@ -237,8 +279,18 @@ export default function ArticleView({ id, versionNumber }: Props) {
               <img src="/editing.png" alt="edit button" />
             </button>
           )}
-          <button onClick={() => navigate(`/article/${id}/versions`)} title="View Versions">
+          <button
+            onClick={() => navigate(`/article/${id}/versions`)}
+            title="View Versions"
+          >
             <img src="/history.png" alt="version history" />
+          </button>
+          <button
+            onClick={handleExportPdf}
+            className="export-pdf-btn"
+            title="Export as PDF"
+          >
+            📄 Export as PDF
           </button>
         </div>
       </div>
